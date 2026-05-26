@@ -6,14 +6,15 @@ export default async function handler(req, res) {
   const { messages, system } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
 
-  console.log("受信body:", JSON.stringify(req.body));
-
   const systemText = system ? system + "\n\n" : "";
-  const userText = messages?.map(m => 
-    typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
-  ).join("\n") || "";
+  
+  const userText = messages?.map(m => {
+    if (typeof m.content === 'string') return m.content;
+    if (Array.isArray(m.content)) return m.content.map(c => c.text || '').join('');
+    return JSON.stringify(m.content);
+  }).join("\n") || "";
 
-  console.log("Geminiに送るテキスト:", systemText + userText);
+  const fullText = systemText + userText;
 
   try {
     const response = await fetch(
@@ -23,15 +24,13 @@ export default async function handler(req, res) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{
-            parts: [{ text: systemText + userText }]
+            parts: [{ text: fullText }]
           }]
         })
       }
     );
 
     const data = await response.json();
-    console.log("Geminiレスポンス:", JSON.stringify(data));
-
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     return res.status(200).json({
@@ -39,7 +38,6 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error("エラー:", error.message);
     return res.status(500).json({ error: error.message });
   }
 }
