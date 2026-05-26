@@ -16,6 +16,10 @@ export default async function handler(req, res) {
 
   const fullText = systemText + userText;
 
+  console.log("=== GEMINI REQUEST ===");
+  console.log("fullText length:", fullText.length);
+  console.log("apiKey exists:", !!apiKey);
+
   try {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
@@ -31,13 +35,16 @@ export default async function handler(req, res) {
     );
 
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    console.log("=== GEMINI RESPONSE ===");
+    console.log(JSON.stringify(data));
 
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     return res.status(200).json({
       content: [{ type: "text", text }]
     });
 
   } catch (error) {
+    console.error("ERROR:", error.message);
     return res.status(500).json({ error: error.message });
   }
 }
